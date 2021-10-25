@@ -1,5 +1,4 @@
 using CryptoForecaster.ML.Base;
-using CryptoForecaster.Objects;
 using System.IO;
 using System;
 using System.Linq;
@@ -8,85 +7,96 @@ using Microsoft.ML.Transforms.TimeSeries;
 using CryptoForecaster.ML.Objects;
 using System.Collections.Generic;
 using CryptoForecaster.Common;
+using CryptoForecaster.Helpers;
 
 namespace CryptoForecaster.ML
 {
     public class Trainer : BaseML
     {
-        public void Train(ProgramArguments args)
+        public string TrainingFilePath { get; init; }
+        public int Horizon { get; init; }
+        public int SeriesLength { get; init; }
+        public string Symbol { get; init; }
+
+        public Trainer(string symbol, int horizon, int seriesLength, string datasetPath)
         {
-            if (!File.Exists(args.TrainingFileName))
-            {
-                Console.WriteLine($"Failed to find training data file ({args.TrainingFileName})");
-                return;
-            }
-
-            // Name of the training file must be of format BTCUSD/ETHUSD.csv etc.
-            string currency = Path.GetFileNameWithoutExtension(args.TrainingFileName);
-
-            int horizon = 5;
-            int seriesLength = 30;
-
-            var allPrices = LoadPricesFromFile(args.TrainingFileName);
-            var trainingData = allPrices.Take(allPrices.Count() - horizon).ToList();
-            var testData = allPrices.TakeLast(horizon).ToList();
-
-            WritePricesToCsv($"{currency}_training-split.csv", trainingData);
-            WritePricesToCsv($"{currency}_testing-split.csv", testData);
-
-            var trainingDataView = MlContext.Data.LoadFromEnumerable(trainingData);
-
-            // TODO: Read - https://docs.microsoft.com/en-us/dotnet/api/microsoft.ml.timeseriescatalog.forecastbyssa?view=ml-dotnet
-
-            //var model = MlContext.Forecasting.ForecastBySsa(
-            //    outputColumnName: nameof(PricePrediction.PriceForecast),
-            //    inputColumnName: nameof(Price.ClosingPrice),
-            //    windowSize: 29,     // each monthly interval is analyzed through this window
-            //    seriesLength: seriesLength,  // splits data into monthly intervals
-            //    trainSize: 3000,
-            //    horizon: 5,
-            //    confidenceLevel: 0.95f,
-            //    confidenceLowerBoundColumn: nameof(PricePrediction.LowerBound),
-            //    confidenceUpperBoundColumn: nameof(PricePrediction.UpperBound));
-
-            //// Fit the model to the training data.
-            //var transformer = model.Fit(trainingDataView);
-
-            ////Evaluate(MlContext.Data.LoadFromEnumerable(testData), transformer, MlContext);
-            //var evalData = EvaluateV2(transformer, testData);
-
-            var (transformer, evalData) = OptimizedSsaModel(trainingDataView, testData, seriesLength, horizon);
-
-            evalData.PrintEvalData();
-            evalData.PrintTestData();
-            evalData.PrintForecast();
-            evalData.WriteToFile($"{currency}_evaluation.csv");
-
-            transformer.Transform(MlContext.Data.LoadFromEnumerable(testData));
-
-            var modelFilePath = Path.Combine(AppContext.BaseDirectory, args.ModelFileName);
-            var forecastEngine = transformer.CreateTimeSeriesEngine<Price, PricePrediction>(MlContext);
-            forecastEngine.CheckPoint(MlContext, modelFilePath);
-
-            Console.WriteLine($"Wrote model to {modelFilePath}");
-     
+            Symbol = symbol;
+            Horizon = horizon;
+            SeriesLength = seriesLength;
+            TrainingFilePath = datasetPath;
         }
 
-        private (ITransformer, EvaluationData) OptimizedSsaModel(IDataView trainingDataView, List<Price> testData, int seriesLength, int horizon)
+        public Evaluation Train(bool toLatestData, IDataService dataService)
         {
-            ITransformer bestModel = null;
-            EvaluationData bestEvalData = null;
+            if (!File.Exists(TrainingFilePath))
+            {
+                throw new FileNotFoundException($"Failed to find training data file ({TrainingFilePath})"); 
+            }
+
+            var allPrices = Util.LoadPricesFromFile(TrainingFilePath);
+
+            if (toLatestData)
+            {
+                var newData = Util.GetLatestAvailableData(Symbol, allPrices.Last().Date, dataService);
+                if (newData.Count() > 0)
+                {
+                    // update list of prices
+                    allPrices = allPrices.Concat(newData);
+
+                    // update dataset file in place.
+                    Util.UpdateDataSet(Symbol, TrainingFilePath, newData, Path.GetFileName(TrainingFilePath));
+                }
+            }
+
+            var trainingData = allPrices.Take(allPrices.Count() - Horizon).ToList();
+            var testData = allPrices.TakeLast(Horizon).ToList();
+
+
+            var evalData = OptimizedSsaModel(trainingData, testData, SeriesLength, Horizon);
+
+            return evalData;
+
+            // var future_predictions = evalData.Transformer.Transform(MlContext.Data.LoadFromEnumerable(testData));
+            // var prediction =
+            //     MlContext.Data.CreateEnumerable<PricePrediction>(future_predictions, true).ToList().First();
+
+            // var lastDate = testData.Last().Date;
+            // var future_forecast_rows = new List<string>{"Date,Forecast,LowerBound,UpperBound"};
+            // for (int i = 0; i < Horizon; i++)
+            // {
+            //     var newDate = lastDate.AddDays(1);
+            //     var newRow = $"{newDate:yyyy-MM-dd},{prediction.PriceForecast[i]},{prediction.LowerBound[i]},"+
+            //                  $"{prediction.UpperBound[i]}";
+            //     future_forecast_rows.Add(newRow);
+            //     lastDate = newDate;
+            // }
+            // File.WriteAllLines(Constants.DataDir + $"{Symbol}_future_forecast.csv", future_forecast_rows);
+
+            // var forecastEngine = evalData.Transformer.CreateTimeSeriesEngine<Price, PricePrediction>(MlContext);
+            // forecastEngine.CheckPoint(MlContext, ModelFilePath);
+
+            // evalData.WriteToFile($"{Symbol}_evaluation.csv");
+            
+            // Console.WriteLine($"Wrote model to {ModelFilePath}");
+        }
+
+        private Evaluation OptimizedSsaModel(List<Price> trainingData, List<Price> testData, int seriesLength, int horizon)
+        {
+
+            Evaluation bestEval = null;
             double minError = double.MaxValue;
             int bestWindowSize = 0;
+            var trainingDataView = MlContext.Data.LoadFromEnumerable(trainingData);
 
             for (int i = 2; i < seriesLength; i++)
             {
+                // TODO: Read - https://docs.microsoft.com/en-us/dotnet/api/microsoft.ml.timeseriescatalog.forecastbyssa?view=ml-dotnet
                 var model = MlContext.Forecasting.ForecastBySsa(
                                 outputColumnName: nameof(PricePrediction.PriceForecast),
                                 inputColumnName: nameof(Price.ClosingPrice),
                                 windowSize: i,     // each monthly interval is analyzed through this window
                                 seriesLength: seriesLength,  // splits data into monthly intervals
-                                trainSize: 3000,
+                                trainSize: trainingData.Count(),
                                 horizon: horizon,
                                 confidenceLevel: 0.95f,
                                 confidenceLowerBoundColumn: nameof(PricePrediction.LowerBound),
@@ -96,104 +106,21 @@ namespace CryptoForecaster.ML
                 var transformer = model.Fit(trainingDataView);
 
                 //Evaluate(MlContext.Data.LoadFromEnumerable(testData), transformer, MlContext);
-                var evalData = EvaluateV2(transformer, testData);
-                if (evalData.MeanAbsoluteError < minError)
+                var forecastEngine = transformer.CreateTimeSeriesEngine<Price, PricePrediction>(MlContext);
+                // Make a prediction using the engine.
+                var prediction = forecastEngine.Predict();
+
+                var eval = new Evaluation(MlContext, horizon, seriesLength, transformer, testData, trainingData, prediction);
+
+                if (eval.MeanAbsoluteError < minError)
                 {
-                    bestEvalData = evalData;
-                    bestModel = transformer;
+                    bestEval = eval;
                     bestWindowSize = i;
-                    minError = evalData.MeanAbsoluteError;
+                    minError = eval.MeanAbsoluteError;
                 }
             }
-            Console.WriteLine($"Best windowSize: {bestWindowSize}");
-            return (bestModel, bestEvalData);
-
-        }
-
-        class EvaluationData
-        {
-            public double MeanForecastError { get; init; }
-            public double MeanAbsoluteError { get; init; }
-            public double MeanSquaredError { get; init; }
-            public double RootMeanSquaredError { get; init; }
-
-            public List<double> Errors { get; init; }
-            public List<Price> TestData { get; init; }
-            public PricePrediction Prediction { get; init; }
-
-            public EvaluationData(List<Price> testPrices, PricePrediction p)
-            {
-                TestData = testPrices;
-
-                // Compute the difference (expected - prediction) to get the error value.
-                var errors = Enumerable.Range(0, p.PriceForecast.Length)
-                    .Select(i => testPrices[i].ClosingPrice - p.PriceForecast[i])
-                    .Select(e => Convert.ToDouble(e)).ToList();
-
-                // The mean forecast error value other than 0 suggests a tendency of the model
-                // to over forecase (negative error) or under forecast (positive error).
-                MeanForecastError = errors.Average();
-
-                // The mean absolute error takes absolute value of the errors before taking the mean.
-                MeanAbsoluteError = errors.Average(e => Math.Abs(e));
-
-                // The mean squared error squares the error values to make them positive, and also
-                // has the effect of putting more weight on large errors.
-                // This highlights worse performance to those models that make large wrong forecasts.
-                // 0 indicates perfect, no errors.
-                MeanSquaredError = errors.Average(e => Math.Pow(e, 2));
-                Errors = errors;
-                Prediction = p;
-            }
-
-            public void PrintEvalData()
-            {
-                Console.WriteLine();
-                Console.WriteLine("--- Performance Measures ---\n" +
-                                  $"Forecast Errors: {string.Join(", ", Errors)}\n" +
-                                  $"Mean Forecast Error: {MeanForecastError}\n" +
-                                  $"Mean Absolute Error: {MeanAbsoluteError}\n" +
-                                  $"Mean Squared Error: {MeanSquaredError}\n");
-            }
-
-            public void PrintForecast()
-            {
-                Prediction.PrintForecastValuesAndIntervals();
-            }
-
-            public void PrintTestData()
-            {
-                Console.WriteLine($"Actual Data:\n[{string.Join(", ", TestData.Select(p => p.ClosingPrice))}]");
-            }
-
-            public void WriteToFile(string name)
-            {
-                var fp = Constants.DataDir + name;
-                var header = "Date,Actual,Forecast,LowerBound,UpperBound";
-                var rows = new List<string>();
-                for (int i = 0; i < TestData.Count(); i++)
-                {
-                    var forecast = Prediction.PriceForecast[i];
-                    var (lowerBound, upperBound) = (Prediction.LowerBound[i], Prediction.UpperBound[i]);
-
-                    var row = $"{TestData[i].Date:yyyy-MM-dd},{TestData[i].ClosingPrice},{forecast},{lowerBound},{upperBound}";
-                    rows.Add(row);
-                }
-                File.WriteAllLines(fp, rows.Prepend(header));
-            }
-        }
-
-        private EvaluationData EvaluateV2(ITransformer transformer, List<Price> testPrices)
-        {
-            var forecastEngine = transformer.CreateTimeSeriesEngine<Price, PricePrediction>(MlContext);
-
-            // Make a prediction using the engine.
-            var forecast = forecastEngine.Predict();
-
-
-            //Console.WriteLine($"Actual Prices:\n[{string.Join(", ", testPrices.Select(p => p.ClosingPrice))}]");
-
-            return new EvaluationData(testPrices, forecast);
+            bestEval.WindowSize = bestWindowSize;
+            return bestEval;
         }
 
         private void PrintPrices(List<Price> prices)
@@ -242,53 +169,6 @@ namespace CryptoForecaster.ML
             Console.WriteLine($"Mean Absolute Error: {MAE:F3}");
             Console.WriteLine($"Root Mean Squared Error: {RMSE:F3}\n");
 
-        }
-
-        private void WritePricesToCsv(String name, List<Price> prices)
-        {
-            var lines = prices.Select(p => $"{p.Date:yyyy-MM-dd},{p.ClosingPrice}").ToArray();
-            var withHeader = new string[]{"Date,Last"}.Concat(lines);
-            File.WriteAllLines(Constants.DataDir + name, withHeader);
-        }
-
-        private double Mean(IEnumerable<double> values)
-        {
-            return values.Sum() * (1.0 / values.Count());
-        }
-
-        private string RemoveCommas(string s)
-        {
-            int index = s.IndexOf(',');
-            if (index == -1)
-            {
-                return s;
-            }
-            return RemoveCommas(s.Remove(index, 1));
-        }
-
-        private string RemoveDblQuotes(string s)
-        {
-            int index = s.IndexOf('"');
-            if (index == -1)
-            {
-                return s;
-            }
-            return RemoveDblQuotes(s.Remove(index, 1));
-        }
-
-
-        private Price ToStockPrices(string row)
-        {
-            var parts = row.Split(',');
-            var date = DateTime.Parse(parts[0]);
-            var closingPriceString = RemoveDblQuotes(RemoveCommas(parts[4]));
-            return new Price(date, Convert.ToSingle(closingPriceString));
-        }
-
-        private IEnumerable<Price> LoadPricesFromFile(string fileName)
-        {
-            var lines = File.ReadAllLines(fileName).Skip(1).Reverse();
-            return lines.Select(r => ToStockPrices(r));
         }
 
     }
