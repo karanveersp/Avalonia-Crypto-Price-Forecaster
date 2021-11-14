@@ -3,20 +3,20 @@ using System;
 
 namespace Shared.ML.Objects
 {
-    public class Price
+    public class TimedFeature
     {
         [LoadColumn(0)]
         public DateTime Date;
 
         [LoadColumn(4)]
-        public float ClosingPrice;
+        public float Feature;
 
-        public Price() { }
+        public TimedFeature() { }
 
-        public Price(DateTime date, float price)
+        public TimedFeature(DateTime date, float feature)
         {
             Date = date;
-            ClosingPrice = price;
+            Feature = feature;
         }
     }
 }

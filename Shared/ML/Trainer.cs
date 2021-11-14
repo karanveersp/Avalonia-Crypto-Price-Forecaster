@@ -20,7 +20,7 @@ namespace Shared.ML
             SeriesLength = seriesLength;
         }
 
-        public Evaluation Train(IEnumerable<Price> data)
+        public Evaluation Train(IEnumerable<TimedFeature> data)
         {
             int bestHorizon;
             double minError = float.MaxValue;
@@ -43,7 +43,7 @@ namespace Shared.ML
             return bestEval;
         }
 
-        private Evaluation OptimizedSsaModel(List<Price> trainingData, List<Price> testData, int seriesLength, int horizon)
+        private Evaluation OptimizedSsaModel(List<TimedFeature> trainingData, List<TimedFeature> testData, int seriesLength, int horizon)
         {
 
             Evaluation bestEval = null;
@@ -56,21 +56,21 @@ namespace Shared.ML
                 // Reference: Read - 
                 // https://docs.microsoft.com/en-us/dotnet/api/microsoft.ml.timeseriescatalog.forecastbyssa?view=ml-dotnet
                 var model = MlContext.Forecasting.ForecastBySsa(
-                                outputColumnName: nameof(PricePrediction.PriceForecast),
-                                inputColumnName: nameof(Price.ClosingPrice),
+                                outputColumnName: nameof(FeaturePrediction.FeatureForecast),
+                                inputColumnName: nameof(TimedFeature.Feature),
                                 windowSize: i,     // each interval is analyzed through this window
                                 seriesLength: seriesLength,  // splits data into intervals
                                 trainSize: trainingData.Count(),
                                 horizon: horizon,
                                 confidenceLevel: 0.95f,
-                                confidenceLowerBoundColumn: nameof(PricePrediction.LowerBound),
-                                confidenceUpperBoundColumn: nameof(PricePrediction.UpperBound));
+                                confidenceLowerBoundColumn: nameof(FeaturePrediction.LowerBound),
+                                confidenceUpperBoundColumn: nameof(FeaturePrediction.UpperBound));
 
                 // Fit the model to the training data.
                 var transformer = model.Fit(trainingDataView);
 
                 //Evaluate(MlContext.Data.LoadFromEnumerable(testData), transformer, MlContext);
-                var forecastEngine = transformer.CreateTimeSeriesEngine<Price, PricePrediction>(MlContext);
+                var forecastEngine = transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(MlContext);
                 // Make a prediction using the engine.
                 var prediction = forecastEngine.Predict();
 

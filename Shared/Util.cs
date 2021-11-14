@@ -11,6 +11,27 @@ namespace Shared
 {
     public static class Util
     {
+
+        public static float CalculatePercentChange(float previous, float current)
+        {
+            if (previous == 0)
+                return 0;
+
+            if (current == 0)
+                return -100;
+
+
+            var change = ((current - previous) / previous) * 100;
+            return change;
+        }
+
+        public static IEnumerable<float> ToPercentChanges(IEnumerable<float> values)
+        {
+            return Enumerable
+                .Range(1, values.Count())
+                .Select(i => CalculatePercentChange(values.ElementAt(i - 1), values.ElementAt(i)));
+        }
+
         public static (string, ModelMetadata) LastModifiedModelAndMetadata(string symbol, string directory)
         {
             var latestModel = Directory.GetFiles(directory)
@@ -26,7 +47,7 @@ namespace Shared
         /// Used to update the existing data file for symbol to the latest data available.
         public static void UpdateDatasetToLatest(string symbol, string dataFilePath, IDataService dataService)
         {
-            var allPrices = Util.LoadPricesFromFile(dataFilePath);
+            var allPrices = Util.LoadFeatureFromFile(dataFilePath, DateTime.UnixEpoch, ClosingPriceParser);
             var newData = Util.GetLatestAvailableData(symbol, allPrices.Last().Date, dataService);
             if (newData.Count() > 0)
             {
@@ -35,11 +56,11 @@ namespace Shared
             }
         }
 
-        public static string UpdateDataSetFile(string symbol, string datasetFilePath, List<Price> newData, string newFileName)
+        public static string UpdateDataSetFile(string symbol, string datasetFilePath, List<TimedFeature> newData, string newFileName)
         {
             var lines = File.ReadAllLines(datasetFilePath);
             var header = lines.First();
-            var linesWithoutHeader = lines.Skip(1).ToList();
+            var linesWithoutHeader = lines.Skip(1);
 
             var lineDict = linesWithoutHeader.Select(line =>
             {
@@ -47,7 +68,7 @@ namespace Shared
                 return (date, line);
             }).ToDictionary(t => t.date, t => t.line);
 
-            var dataAsRows = newData.Select(p => $"{p.Date:yyyy-MM-dd},,,,{p.ClosingPrice},,,").Reverse();
+            var dataAsRows = newData.Select(p => $"{p.Date:yyyy-MM-dd},,,,{p.Feature},,,").Reverse();
             var dataTuples = dataAsRows.Select(line =>
             {
                 var date = DateTime.Parse(line.Split(",")[0]);
@@ -107,21 +128,36 @@ namespace Shared
         }
 
 
-        private static Price ToPrices(string row)
+        public static TimedFeature ClosingPriceParser(string row)
         {
             var parts = row.Split(',');
             var date = DateTime.Parse(parts[0]);
             var closingPriceString = RemoveDblQuotes(RemoveCommas(parts[4]));
-            return new Price(date, Convert.ToSingle(closingPriceString));
+            return new TimedFeature(date, Convert.ToSingle(closingPriceString));
         }
 
-        public static IEnumerable<Price> LoadPricesFromFile(string fileName)
+        public static IEnumerable<TimedFeature> LoadFeatureFromFile(string fileName, DateTime startDate, Func<string, TimedFeature> featureParser)
         {
             var lines = File.ReadAllLines(fileName).Skip(1).Reverse();
-            return lines.Select(r => ToPrices(r));
+            return lines.Select(r => featureParser(r))
+                .Where(p => p.Date >= startDate);
         }
 
-        public static List<Price> GetLatestAvailableData(string symbol, DateTime lastDate, IDataService dataService)
+        public static IEnumerable<TimedFeature> LoadPercentChangesFromFile(string fileName, DateTime startDate, Func<string, TimedFeature> featureParser)
+        {
+            var data = LoadFeatureFromFile(fileName, startDate, featureParser);
+            var pctChanges = new List<TimedFeature>();
+            for (int i = 1; i < data.Count(); i++)
+            {
+                pctChanges.Add(new TimedFeature(
+                    data.ElementAt(i).Date,
+                    CalculatePercentChange(data.ElementAt(i - 1).Feature, data.ElementAt(i).Feature))
+                );
+            }
+            return pctChanges;
+        }
+
+        public static List<TimedFeature> GetLatestAvailableData(string symbol, DateTime lastDate, IDataService dataService)
         {
             var today = DateTime.Now;
             var yesterday = today.AddDays(-1);
@@ -135,12 +171,12 @@ namespace Shared
                 // newData.ForEach(p => System.Console.WriteLine($"{p.Date},{p.ClosingPrice}"));
                 return newData;
             }
-            return new List<Price>();
+            return new List<TimedFeature>();
         }
 
-        public static void WritePricesToCsv(String filepath, List<Price> prices)
+        public static void WritePricesToCsv(String filepath, List<TimedFeature> prices)
         {
-            var lines = prices.Select(p => $"{p.Date:yyyy-MM-dd},{p.ClosingPrice}").ToArray();
+            var lines = prices.Select(p => $"{p.Date:yyyy-MM-dd},{p.Feature}").ToArray();
             var withHeader = new string[] { "Date,Last" }.Concat(lines);
             File.WriteAllLines(filepath, withHeader);
         }

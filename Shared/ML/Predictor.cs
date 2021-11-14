@@ -14,35 +14,52 @@ namespace Shared.ML
     public class Predictor : BaseML
     {
         public string Symbol { get; init; }
-        public string DataDir { get; init; }
-        public string ModelsDir { get; init; }
         public string ModelFilePath { get; init; }
         public ModelMetadata Metadata { get; init; }
 
-        private bool _includeCurrentPrice;
-        private IDataService _dataService;
-
-        public Predictor(string symbol, string modelsDir, bool includeCurrentPrice, IDataService ds)
+        public Predictor(string symbol, string modelPath, ModelMetadata modelMetadata)
         {
-            var (modelPath, metadata) = Util.LastModifiedModelAndMetadata(symbol, modelsDir);
             Symbol = symbol;
             ModelFilePath = modelPath;
-            Metadata = metadata;
-            _dataService = ds;
-            _includeCurrentPrice = includeCurrentPrice;
+            Metadata = modelMetadata;
         }
 
-        public PredictionData Predict(float customLastPrice = float.MinValue)
+        public PredictionData Predict(List<TimedFeature> newData)
         {
-            // does not update any files, or write a new model. Simply reads, gets missing new data
-            // after the model's metadata trainedtodate, and based on includecurrentprice, makes
-            // a prediction and returns the result data object.
+            // does not update any files, or write a new model. Uses the model it was constructed with
+            // to make predictions based on the given new data
 
+            var mlModel = LoadModelIntoMemory(ModelFilePath);
+
+            DateTime trainedToDate;
+
+            if (newData.Count() > 0)
+            {
+                // some new data was provided (possibly including today's current price or hypothetical price)
+                // Train the model on the data, and then make the prediction.
+                var dataView = MlContext.Data.LoadFromEnumerable<TimedFeature>(newData);
+                mlModel.Transform(dataView);
+                trainedToDate = newData.Last().Date;
+            }
+            else
+            {
+                // No new data was provided. Metadata trained date is the last date.
+                trainedToDate = Metadata.TrainedToDate;
+            }
+
+            var predictionEngine = mlModel.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(MlContext);
+            var prediction = predictionEngine.Predict();
+            var forecast = ForecastData.FromPredictionFromDate(prediction, trainedToDate);
+
+            return new PredictionData(Metadata, trainedToDate, newData, forecast);
+        }
+
+        private ITransformer LoadModelIntoMemory(String modelPath)
+        {
             ITransformer mlModel;
 
-
             using (var stream = new FileStream(ModelFilePath,
-                FileMode.Open, FileAccess.Read, FileShare.Read))
+                        FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 mlModel = MlContext.Model.Load(stream, out _);
             }
@@ -51,55 +68,9 @@ namespace Shared.ML
             {
                 throw new Exception("Failed to load model");
             }
-
-            // Model is loaded. 
-            // Check current date against model metadata.
-            var today = DateTime.Now;
-            var yesterday = today.Date.AddDays(-1);
-
-            System.Console.WriteLine($"Model is trained from date: {Metadata.TrainedFromDate:yyyy-MM-dd}");
-            System.Console.WriteLine($"Model is trained to date: {Metadata.TrainedToDate:yyyy-MM-dd}");
-
-            DateTime trainedToDate;
-
-            var newData = Util.GetLatestAvailableData(Symbol, Metadata.TrainedToDate, _dataService);
-
-            if (newData.Count() != 0)
-            {
-                newData.ForEach(d => System.Console.WriteLine($"New data: {d.Date:yyyy-MM-dd}, {d.ClosingPrice}"));
-                var dataView = MlContext.Data.LoadFromEnumerable<Price>(newData);
-                mlModel.Transform(dataView);
-            }
-
-            var predictionEngine = mlModel.CreateTimeSeriesEngine<Price, PricePrediction>(MlContext);
-
-            PricePrediction prediction;
-            List<ForecastData> forecast;
-
-            if (customLastPrice != float.MinValue)
-            {
-                trainedToDate = today;
-                var customPrice = new Price(today, customLastPrice);
-                newData.Add(customPrice);
-                prediction = predictionEngine.Predict(customPrice);
-                forecast = ForecastData.FromPredictionFromDate(prediction, today);
-            }
-            else if (_includeCurrentPrice)
-            {
-                var currentPrice = _dataService.CurrentPrice(Symbol);
-                prediction = predictionEngine.Predict(currentPrice);
-                newData.Add(currentPrice);
-                trainedToDate = today;
-                forecast = ForecastData.FromPredictionFromDate(prediction, today);
-            }
-            else
-            {
-                trainedToDate = yesterday;
-                prediction = predictionEngine.Predict();
-                forecast = ForecastData.FromPredictionFromDate(prediction, yesterday);
-            }
-
-            return new PredictionData(Metadata, trainedToDate, newData, forecast);
+            return mlModel;
         }
+
+
     }
 }

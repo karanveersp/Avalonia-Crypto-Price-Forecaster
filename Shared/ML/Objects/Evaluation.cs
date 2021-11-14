@@ -17,9 +17,9 @@ namespace Shared.ML.Objects
         public double RootMeanSquaredError { get; init; }
 
         public List<double> Diffs { get; init; }
-        public List<Price> TestData { get; init; }
-        public List<Price> TrainingData { get; private set; }
-        public PricePrediction TestPrediction { get; init; }
+        public List<TimedFeature> TestData { get; init; }
+        public List<TimedFeature> TrainingData { get; private set; }
+        public FeaturePrediction TestPrediction { get; init; }
 
         public int WindowSize { get; set; }
         public int Horizon { get; set; }
@@ -39,7 +39,7 @@ namespace Shared.ML.Objects
         private MLContext _mlContext;
         private ITransformer _transformer;
 
-        public Evaluation(MLContext mlContext, int horizon, int seriesLength, ITransformer transformer, List<Price> testPrices, List<Price> trainingPrices, PricePrediction p)
+        public Evaluation(MLContext mlContext, int horizon, int seriesLength, ITransformer transformer, List<TimedFeature> testPrices, List<TimedFeature> trainingPrices, FeaturePrediction p)
         {
             _mlContext = mlContext;
             _transformer = transformer;
@@ -51,8 +51,8 @@ namespace Shared.ML.Objects
             TrainingData = trainingPrices;
 
             // Compute the difference (expected - prediction) to get the error value.
-            var errors = Enumerable.Range(0, p.PriceForecast.Length)
-                .Select(i => testPrices[i].ClosingPrice - p.PriceForecast[i])
+            var errors = Enumerable.Range(0, p.FeatureForecast.Length)
+                .Select(i => testPrices[i].Feature - p.FeatureForecast[i])
                 .Select(e => Convert.ToDouble(e)).ToList();
 
             // The mean forecast error value other than 0 suggests a tendency of the model
@@ -91,14 +91,14 @@ namespace Shared.ML.Objects
 
         public void PrintTestData()
         {
-            Console.WriteLine($"Actual Data:\n[{string.Join(", ", TestData.Select(p => p.ClosingPrice))}]");
+            Console.WriteLine($"Actual Data:\n[{string.Join(", ", TestData.Select(p => p.Feature))}]");
         }
 
         public List<ForecastData> TrainOnTestDataAndGetForecasts()
         {
             var future_predictions = _transformer.Transform(_mlContext.Data.LoadFromEnumerable(TestData));
             var prediction =
-                _mlContext.Data.CreateEnumerable<PricePrediction>(future_predictions, true).ToList().First();
+                _mlContext.Data.CreateEnumerable<FeaturePrediction>(future_predictions, true).ToList().First();
             var forecasts = ForecastData.FromPredictionFromDate(TestPrediction, TestData.First().Date.AddDays(-1));
 
             var lastDate = TestData.Last().Date;
@@ -114,7 +114,7 @@ namespace Shared.ML.Objects
             var forecasts = new List<ForecastData>();
             for (int i = 0; i < TestData.Count(); i++)
             {
-                var forecast = TestPrediction.PriceForecast[i];
+                var forecast = TestPrediction.FeatureForecast[i];
                 var (lowerBound, upperBound) = (TestPrediction.LowerBound[i], TestPrediction.UpperBound[i]);
                 var forecastItem = new ForecastData(TestData[i].Date, forecast, upperBound, lowerBound);
                 forecasts.Add(forecastItem);
@@ -131,7 +131,7 @@ namespace Shared.ML.Objects
             var modelFileName = $"{symbol}_predictor.zip";
             var modelFilePath = Path.Combine(directory, modelFileName);
 
-            var forecastEngine = _transformer.CreateTimeSeriesEngine<Price, PricePrediction>(_mlContext);
+            var forecastEngine = _transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(_mlContext);
             forecastEngine.CheckPoint(_mlContext, modelFilePath);
 
             // Write the model's metadata to the same directory. 

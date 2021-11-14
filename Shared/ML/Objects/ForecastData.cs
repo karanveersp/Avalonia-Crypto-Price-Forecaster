@@ -21,14 +21,14 @@ namespace Shared.ML.Objects
             BoundsDifference = (upperBound - lowerBound) / 2.0;
         }
 
-        public static List<ForecastData> FromPredictionFromDate(PricePrediction p, DateTime date)
+        public static List<ForecastData> FromPredictionFromDate(FeaturePrediction p, DateTime date)
         {
             var forecasts = new List<ForecastData>();
 
-            for (int i = 0; i < p.PriceForecast.Count(); i++)
+            for (int i = 0; i < p.FeatureForecast.Count(); i++)
             {
                 var newDate = date.AddDays(1);
-                var forecastItem = new ForecastData(newDate, p.PriceForecast[i],
+                var forecastItem = new ForecastData(newDate, p.FeatureForecast[i],
                                                     p.UpperBound[i], p.LowerBound[i]);
                 forecasts.Add(forecastItem);
                 date = newDate;

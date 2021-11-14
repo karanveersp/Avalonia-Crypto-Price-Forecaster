@@ -6,7 +6,7 @@ namespace Shared.Services
 {
     public interface IDataService
     {
-        List<Price> DataAfterDate(string symbol, DateTime date); 
-        Price CurrentPrice(string symbol);
+        List<TimedFeature> DataAfterDate(string symbol, DateTime date);
+        TimedFeature CurrentPrice(string symbol);
     }
 }

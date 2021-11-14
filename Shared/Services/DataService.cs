@@ -26,10 +26,10 @@ namespace Shared.Services
             }
         }
 
-        public List<Price> DataAfterDate(string symbol, DateTime date)
+        public List<TimedFeature> DataAfterDate(string symbol, DateTime date)
         {
             var data = Client.Timeseries.GetDataAsync(QuandlDatabaseCode, symbol, startDate: date.Date).Result;
-            var prices = new List<Price>();
+            var prices = new List<TimedFeature>();
             // System.Console.WriteLine(string.Join(", ", data.DatasetData.ColumnNames));
             var rows = data.DatasetData.Data;
             rows.Reverse();  // data is returned new -> old, so reverse.
@@ -37,22 +37,22 @@ namespace Shared.Services
             {
                 var rowDate = DateTime.Parse((string)row[0]);
                 var rowClose = (double)row[4];
-                prices.Add(new Price(rowDate, Convert.ToSingle(rowClose)));
+                prices.Add(new TimedFeature(rowDate, Convert.ToSingle(rowClose)));
             }
 
             return prices;
         }
 
-        public Price CurrentPrice(string symbol)
+        public TimedFeature CurrentPrice(string symbol)
         {
             // remove USD from symbol.
             var symbolWithoutUsd = symbol.Replace("USD", String.Empty);
             var id = SymbolToCoinGeckoId[symbolWithoutUsd];
             var currentPrices = GeckoClient.SimpleClient.GetSimplePrice(
-                new string[]{id},
-                new string[]{"usd"}).Result;
+                new string[] { id },
+                new string[] { "usd" }).Result;
             decimal price = currentPrices.GetValueOrDefault(id).GetValueOrDefault("usd").GetValueOrDefault();
-            var currentPrice = new Price(DateTime.Now, Convert.ToSingle(price));
+            var currentPrice = new TimedFeature(DateTime.Now, Convert.ToSingle(price));
             return currentPrice;
         }
     }
