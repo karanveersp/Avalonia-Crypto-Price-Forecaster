@@ -1,20 +1,29 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using Shared.ML.Objects;
 using Quandl.NET;
 using CoinGecko.Clients;
+using Newtonsoft.Json.Linq;
 
 namespace Shared.Services
 {
     public class DataService : IDataService
     {
-        private QuandlClient Client;
-        private CoinGeckoClient GeckoClient;
+        private readonly QuandlClient Client;
+        private readonly CoinGeckoClient GeckoClient;
+        private readonly HttpClient HttpClient;
+        
+        
         private const string QuandlDatabaseCode = "BITFINEX";
         private Dictionary<string, string> SymbolToCoinGeckoId;
 
         public DataService(string quandlApiKey)
         {
+            HttpClient = new HttpClient();
+            
             Client = new QuandlClient(quandlApiKey);
             GeckoClient = CoinGeckoClient.Instance;
             var coinData = GeckoClient.CoinsClient.GetAllCoinsData().Result;
@@ -26,7 +35,7 @@ namespace Shared.Services
             }
         }
 
-        public List<TimedFeature> DataAfterDate(string symbol, DateTime date)
+        public List<TimedFeature> CloseDataAfterDate(string symbol, DateTime date)
         {
             var data = Client.Timeseries.GetDataAsync(QuandlDatabaseCode, symbol, startDate: date.Date).Result;
             var prices = new List<TimedFeature>();
@@ -37,6 +46,8 @@ namespace Shared.Services
             {
                 var rowDate = DateTime.Parse((string)row[0]);
                 var rowClose = (double)row[4];
+                
+                
                 prices.Add(new TimedFeature(rowDate, Convert.ToSingle(rowClose)));
             }
 
@@ -55,5 +66,26 @@ namespace Shared.Services
             var currentPrice = new TimedFeature(DateTime.Now, Convert.ToSingle(price));
             return currentPrice;
         }
+
+        public List<OhlcData> Candles(string symbol, DateTime from)
+        {
+            HttpClient.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+            var result = HttpClient.GetStringAsync($"https://api.gemini.com/v2/candles/{symbol.ToLower()}/1day").Result;
+            var jsonArray = JArray.Parse(result);
+            List<OhlcData> candles = new List<OhlcData>();
+            foreach (JArray subArray in jsonArray.Children<JArray>())
+            {
+                var csv = String.Join(',', subArray.Take(5)
+                    .Select(v => v.ToObject<string>()));
+                var ohlcPoint = OhlcData.FromLine(csv);
+                candles.Add(ohlcPoint);
+            }
+
+            candles.Reverse(); // ascending order instead of descending.
+            return candles;
+        }
+
+        
     }
 }

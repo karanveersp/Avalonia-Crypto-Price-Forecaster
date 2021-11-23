@@ -12,6 +12,13 @@ namespace Shared
     public static class Util
     {
 
+        public static DateTime UnixTimeToDateTime(long unixTime)
+        {
+            var dt = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dt = dt.AddMilliseconds(unixTime).ToLocalTime();
+            return dt;
+        }
+
         public static float CalculatePercentChange(float previous, float current)
         {
             if (previous == 0)
@@ -167,7 +174,7 @@ namespace Shared
                 // Model is out of date! Grab the data for missing days including yesterday,
                 // and transform the model with them before making predictions for today.            
                 var startDate = lastDate.AddDays(1);
-                var newData = dataService.DataAfterDate(symbol, startDate);
+                var newData = dataService.CloseDataAfterDate(symbol, startDate);
                 // newData.ForEach(p => System.Console.WriteLine($"{p.Date},{p.ClosingPrice}"));
                 return newData;
             }

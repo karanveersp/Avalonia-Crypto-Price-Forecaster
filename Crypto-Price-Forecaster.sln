@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForecasterAPI", "Forecaster
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForecasterCLI", "ForecasterCLI\ForecasterCLI.csproj", "{ECD73F99-0396-4539-862E-C0298425ED33}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForecasterGUI", "ForecasterGUI\ForecasterGUI.csproj", "{55365332-C997-4CC1-9D1D-949B8877A92F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{ECD73F99-0396-4539-862E-C0298425ED33}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ECD73F99-0396-4539-862E-C0298425ED33}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ECD73F99-0396-4539-862E-C0298425ED33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55365332-C997-4CC1-9D1D-949B8877A92F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55365332-C997-4CC1-9D1D-949B8877A92F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55365332-C997-4CC1-9D1D-949B8877A92F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55365332-C997-4CC1-9D1D-949B8877A92F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

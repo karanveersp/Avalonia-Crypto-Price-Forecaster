@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:ForecasterGUI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             d:DataContext="{d:DesignInstance vm:NavViewModel}"
+             x:Class="ForecasterGUI.Views.NavView">
+    <DockPanel LastChildFill="True">
+        <Grid DockPanel.Dock="Top" Margin="20, 10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                        Spacing="20">
+            <Button Command="{Binding ToHistoricalData}">Historical Data</Button>
+            <Button Command="{Binding ToML}">ML</Button> 
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Command="{Binding ToSettings}">Settings</Button>
+            </StackPanel>
+        </Grid>
+        
+        <UserControl Margin="20" Content="{Binding Center}"/>
+    </DockPanel>
+</UserControl>
