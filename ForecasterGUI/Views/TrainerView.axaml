@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ForecasterGUI.Views.TrainerView">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <StackPanel HorizontalAlignment="Left">
+            <TextBlock Classes="header" Text="Model Directory"/>
+            <TextBox IsReadOnly="True" BorderThickness="0" Width="500" Text="{Binding SymbolDir}"/>
+        </StackPanel>
+        
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0, 20, 0, 0" Spacing="10">
+            <ComboBox Name="SymbolComboBox">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <CheckBox Name="NewModelCheckBox">Train new model</CheckBox>
+        </StackPanel>
+        
+        <StackPanel Grid.Row="2" Margin="0, 20" Name="NewModelPanel" Orientation="Horizontal" Spacing="10">
+                <TextBox Name="NewModelTextBox" MaxWidth="300" Width="300" Watermark="New Model Name" />
+                <Button Name="GenerateButton">Default Name</Button>
+        </StackPanel>
+        
+        <StackPanel Grid.Row="2" Margin="0, 20" Name="ExistingModelsPanel" Orientation="Vertical" Spacing="10">
+            <ComboBox Name="ExistingModelsComboBox">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox> 
+        </StackPanel>
+        
+        <StackPanel Grid.Row="3" Orientation="Vertical" HorizontalAlignment="Left">
+            <TextBlock Text="Horizon" Classes="header"/>
+            <NumericUpDown Name="HorizonControl" Watermark="Minimum Horizon" Width="140" Increment="1" Minimum="2"/>
+            <TextBlock Text="Series Length" Classes="header"/>
+            <NumericUpDown Name="SeriesLengthControl" Watermark="Series Length" Width="140" Increment="1" Minimum="3"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Bottom" Spacing="10">
+                <Button Margin="0, 20" Name="TrainButton">Train</Button>
+                <TextBlock Margin="0, 20" Name="TrainingTextBlock" Text="Training..."/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

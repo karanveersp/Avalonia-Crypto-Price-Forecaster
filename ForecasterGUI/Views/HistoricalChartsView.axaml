@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="using:ForecasterGUI.ViewModels"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ForecasterGUI.Views.HistoricalChartsView">
+    <Design.DataContext>
+        <vm:HistoricalChartsViewModel/>
+    </Design.DataContext>
+    <Grid Margin="5,5,5,5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TabControl Grid.Row="1">
+            <TabItem Header="Percent Changes" Content="{Binding PercentChangesViewModel}"/>
+            <TabItem Header="Closing Prices" Content="{Binding ClosingPricesViewModel}" />
+        </TabControl> 
+    </Grid>
+</UserControl>

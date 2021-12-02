@@ -28,13 +28,9 @@ namespace Shared.ML.Objects
         public DateTime TrainedTillDate { get; private set; }
         public DateTime TrainedFromDate { get; set; }
 
-        public ModelMetadata Metadata
-        {
-            get
-            {
-                return new ModelMetadata(TrainedFromDate, TrainedTillDate, WindowSize, Horizon, SeriesLength);
-            }
-        }
+        public ModelMetadata Metadata =>
+            new(TrainedFromDate, TrainedTillDate, WindowSize, Horizon, SeriesLength,
+                MeanForecastError, MeanAbsoluteError, MeanSquaredError);
 
         private MLContext _mlContext;
         private ITransformer _transformer;
@@ -128,7 +124,7 @@ namespace Shared.ML.Objects
         // Returns a tuple of model file path, metadata file path.
         public (string, string) WriteModelToDir(string symbol, string directory)
         {
-            var modelFileName = $"{symbol}_predictor.zip";
+            var modelFileName = $"{Path.GetFileName(directory)}.zip";
             var modelFilePath = Path.Combine(directory, modelFileName);
 
             var forecastEngine = _transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(_mlContext);

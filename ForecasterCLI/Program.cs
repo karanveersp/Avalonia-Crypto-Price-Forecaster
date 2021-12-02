@@ -49,12 +49,13 @@ namespace ForecasterCLI
 
             if (toLatestData)
             {
-                newData = Util.GetLatestAvailableData(symbol, metadata.TrainedToDate, ds);
+                newData = Util.GetLatestAvailableCloseData(symbol, metadata.TrainedToDate, ds);
                 var currentPrice = ds.CurrentPrice(symbol);
                 newData.Add(currentPrice);
             }
 
-            if (customPrice != float.MinValue)
+            // CustomPrice default if not provided is float.MinValue.
+            if (Math.Abs(customPrice - float.MinValue) > 0.1)
             {
                 // take all but last, and replace the last value with the custom feature
                 newData = newData
@@ -71,7 +72,7 @@ namespace ForecasterCLI
             {
                 s.Append($"{f.Date:yyyy-MM-dd} - {f.Forecast} +/- {f.BoundsDifference}\n");
             }
-            logger.Info($"Forecast from: {predictionData.TrainedToDate:yyyy-MM-dd}\n{s.ToString()}");
+            logger.Info($"Forecast from: {predictionData.TrainedToDate:yyyy-MM-dd}\n{s}");
 
             Util.WriteForecastsToFile(Constants.DataDir + $"{symbol}_prediction_forecast.csv", predictionData.Forecast);
 
@@ -79,7 +80,7 @@ namespace ForecasterCLI
             var predictionDatasetFile = Constants.DataDir + $"{symbol}_prediction_dataset.csv";
             File.Copy(datasetFile, predictionDatasetFile, overwrite: true);
 
-            Util.UpdateDataSetFile(symbol, predictionDatasetFile, predictionData.NewDataForModel, predictionDatasetFile);
+            Util.UpdateDataSetFile(predictionDatasetFile, predictionDatasetFile, predictionData.NewDataForModel);
         }
 
         private static void Train(String symbol, String quandlApiKey, int horizon, int seriesLength,

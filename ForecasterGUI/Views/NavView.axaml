@@ -4,27 +4,28 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ForecasterGUI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             d:DataContext="{d:DesignInstance vm:NavViewModel}"
              x:Class="ForecasterGUI.Views.NavView">
+
     <DockPanel LastChildFill="True">
-        <Grid DockPanel.Dock="Top" Margin="20, 10">
+        <Grid DockPanel.Dock="Top" Margin="5, 10">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
-                        Spacing="20">
-            <Button Command="{Binding ToHistoricalData}">Historical Data</Button>
-            <Button Command="{Binding ToML}">ML</Button> 
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Command="{Binding ToSettings}">Settings</Button>
-            </StackPanel>
+            <Panel Classes="Navbar">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                            Spacing="20">
+                    <Button Classes="HeaderBtn" Command="{Binding ToHistoricalData}">Historical Data</Button>
+                    <Button Classes="HeaderBtn" Command="{Binding ToML}">ML</Button>
+                    <Button Classes="HeaderBtn" Command="{Binding ToSettings}">Settings</Button>
+                </StackPanel>
+            </Panel>
+            <!-- <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"> -->
+            <!-- </StackPanel> -->
         </Grid>
-        
-        <UserControl Margin="20" Content="{Binding Center}"/>
+
+        <UserControl Margin="20" Content="{Binding Center}" />
     </DockPanel>
 </UserControl>

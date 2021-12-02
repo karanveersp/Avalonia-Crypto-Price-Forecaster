@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -32,7 +33,16 @@ namespace Shared.Services
             foreach (var coin in coinData)
             {
                 SymbolToCoinGeckoId.Add(coin.Symbol.ToUpper(), coin.Id);
+                Trace.WriteLine($"{coin.Symbol.ToUpper()} - {coin.Id}");
             }
+        }
+        
+        public List<HlmcbavData> DataAfterDate(string symbol, DateTime date)
+        {
+            var data = Client.Timeseries.GetDataAsync(QuandlDatabaseCode, symbol, startDate: date.Date).Result;
+            var rows = data.DatasetData.Data;
+            rows.Reverse();  // data is returned new -> old, so reverse.
+            return rows.Select(HlmcbavData.FromObj).ToList();
         }
 
         public List<TimedFeature> CloseDataAfterDate(string symbol, DateTime date)
@@ -78,7 +88,7 @@ namespace Shared.Services
             {
                 var csv = String.Join(',', subArray.Take(5)
                     .Select(v => v.ToObject<string>()));
-                var ohlcPoint = OhlcData.FromLine(csv);
+                var ohlcPoint = OhlcData.FromLine(csv, true);
                 candles.Add(ohlcPoint);
             }
 

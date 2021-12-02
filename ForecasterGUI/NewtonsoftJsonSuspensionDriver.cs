@@ -24,7 +24,7 @@ namespace ForecasterGUI
         public IObservable<object> LoadState()
         {
             var lines = File.ReadAllText(_file);
-            var state = JsonConvert.DeserializeObject<object>(lines, _settings);
+            var state = JsonConvert.DeserializeObject<object>(lines, _settings)!;
             return Observable.Return(state);
         }
         public IObservable<Unit> SaveState(object state)

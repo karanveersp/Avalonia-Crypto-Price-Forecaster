@@ -1,14 +1,14 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Notifications;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using ForecasterGUI.ViewModels;
 using ForecasterGUI.Views;
 using ReactiveUI;
 using dotenv.net;
-using Shared;
 using Shared.Services;
 using Splat;
 
@@ -25,31 +25,51 @@ namespace ForecasterGUI
             Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ForecasterGUI");
 
+        public static string[] SupportedCurrencies = null!;
+
         public override void OnFrameworkInitializationCompleted()
         {
 
-            Trace.WriteLine(LocalAppDataDir);
-            Directory.CreateDirectory(LocalAppDataDir);
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                Directory.CreateDirectory(LocalAppDataDir);
 
-            var envVars = DotEnv.Fluent()
-                .WithExceptions()
-                .WithEnvFiles()
-                .Read();
+                // Parse dotenv file and initialize instance of data service.
+                var envVars = DotEnv.Fluent()
+                    .WithEnvFiles()
+                    .WithEnvFiles()
+                    .Read();
+                var apiKey = envVars["API_KEY"];
+                var dataService = new DataService(apiKey);
 
-            var apiKey = envVars["API_KEY"];
+                SupportedCurrencies = envVars["SUPPORTED_CURRENCIES"].Split(',');
+                
+                // Singleton data service registration with DI framework.
+                Locator.CurrentMutable.RegisterConstant(dataService, typeof(IDataService));
+                
+                var mainWindow = new MainWindow();
+                
+                // Register MainWindow with DI to allow other components to access the main view model
+                // for window notification command creation.
+                Locator.CurrentMutable.RegisterConstant(mainWindow, typeof(MainWindow));
 
-            var dataService = new DataService(apiKey);
-            Locator.CurrentMutable.RegisterConstant(dataService, typeof(IDataService));
+                // Create the AutoSuspendHelper for the application config.
+                var suspension = new AutoSuspendHelper(ApplicationLifetime);
+                RxApp.SuspensionHost.CreateNewAppState = () => new AppStateViewModel();
+                string stateFile = Path.Join(LocalAppDataDir, "appstate.json");
+                RxApp.SuspensionHost.SetupDefaultSuspendResume(new NewtonsoftJsonSuspensionDriver(stateFile));
+                suspension.OnFrameworkInitializationCompleted();
+                
+                Locator.CurrentMutable.RegisterConstant(
+                    RxApp.SuspensionHost.GetAppState<AppStateViewModel>(), typeof(AppStateViewModel));
+                
+                // Display the main view.
+                desktop.MainWindow = mainWindow;
+               
+                base.OnFrameworkInitializationCompleted();
+            }
+
             
-            // Create the AutoSuspendHelper.
-            var suspension = new AutoSuspendHelper(ApplicationLifetime);
-            RxApp.SuspensionHost.CreateNewAppState = () => new SettingsViewModel();
-            string stateFile = Path.Join(LocalAppDataDir, "appstate.json");
-            RxApp.SuspensionHost.SetupDefaultSuspendResume(new NewtonsoftJsonSuspensionDriver(stateFile));
-            new MainWindow {DataContext = new MainWindowViewModel()}.Show();
-            base.OnFrameworkInitializationCompleted();
-            suspension.OnFrameworkInitializationCompleted();
-            base.OnFrameworkInitializationCompleted();
         }
     }
 }

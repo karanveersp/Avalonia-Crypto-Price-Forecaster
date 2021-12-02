@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Runtime.Serialization;
+using Avalonia.Controls.Notifications;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -34,9 +36,19 @@ namespace ForecasterGUI.ViewModels
         //         });
         //     Content = vm; // transition to new view by setting new view model.
         // }
-        
-        public MainWindowViewModel()
+
+        private IManagedNotificationManager _notificationManager;
+
+        public IManagedNotificationManager NotificationManager
         {
+            get => _notificationManager;
+            set => this.RaiseAndSetIfChanged(ref _notificationManager, value);
+        }
+        
+        public MainWindowViewModel(IManagedNotificationManager notificationManager)
+        {
+            _notificationManager = notificationManager;
+            
             Content = new NavViewModel();
         }
         

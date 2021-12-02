@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Linq;
-using System.Runtime.Serialization;
-using System.Threading.Tasks;
 using ForecasterGUI.Models;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Shared;
-using Shared.ML.Objects;
 using Shared.Services;
 using Splat;
 
@@ -19,57 +15,76 @@ namespace ForecasterGUI.ViewModels
 {
     public class HistoricalDataViewModel : ViewModelBase
     {
-        
-        public IEnumerable<Symbol> Symbols { get; }
-        
         [Reactive]
         public Symbol SelectedSymbol { get; set; }
+        public IEnumerable<Symbol> Symbols { get; }
 
-        private IDataService? _dataService;
+        private ObservableAsPropertyHelper<IEnumerable<HlmcbavData>> hlmcbavPoints;
+        public IEnumerable<HlmcbavData> HlmcbavPoints => hlmcbavPoints.Value;
         
+        // Data file path OAPH
         public string DataFilePath { [ObservableAsProperty] get; }
 
+        // Fetching OAPH
         public bool IsFetching { [ObservableAsProperty] get; }
+
+        // Display graphs OAPH
+        private ObservableAsPropertyHelper<bool> displayGraphTabs;
+        public bool DisplayGraphTabs => displayGraphTabs.Value;
         
-        public ReactiveCommand<string, List<OhlcData>> FetchData { get; private set; }
 
-        private IObservable<List<OhlcData>> FetchCandleDataAsync(string symbol)
+        // Command
+        public ReactiveCommand<string, List<HlmcbavData>> FetchData { get; private set; }
+
+        // Charts view model ref
+        [Reactive]
+        public ViewModelBase HistoricalChartsViewModel { get; private set; }
+        
+        // Private fields
+        private IDataService? _dataService;
+        private IObservable<List<HlmcbavData>> FetchDataAsync(string symbol)
         {
-            return Observable.Start(() =>
-            {
-                var list = _dataService!.Candles(symbol, DateTime.UnixEpoch);
-                var csv = list.Select(ohlc =>
-                        $"{ohlc.Date.ToString("yyyy-MM-dd")},{ohlc.Open},{ohlc.High},{ohlc.Low},{ohlc.Close}")
-                    .Prepend("Date,Open,High,Low,Close");
-                File.WriteAllLines(DataFilePath, csv);
-                Trace.WriteLine($"Wrote to: {DataFilePath}");
-                return list;
-            }).Delay(TimeSpan.FromSeconds(2));
+            return Observable.Start(() => Util.FetchOverwriteExistingData(symbol, _dataService, DataFilePath));
         }
+        private AppStateViewModel _appStateViewModel;
 
+        // Constructor
         public HistoricalDataViewModel(IDataService? dataService = null)
         {
-            Symbols = new[] { new Symbol("BTCUSD"), new Symbol("ETHUSD") };
+            _appStateViewModel = Locator.Current.GetService<AppStateViewModel>()!;
+
+            Symbols = App.SupportedCurrencies.Select(s => new Symbol(s)).ToList();
             SelectedSymbol = Symbols.First();
             
             _dataService = dataService ?? Locator.Current.GetService<IDataService>();
-            
-            FetchData = ReactiveCommand.CreateFromObservable<string, List<OhlcData>>(FetchCandleDataAsync);
 
+            FetchData = ReactiveCommand.CreateFromObservable<string, List<HlmcbavData>>(FetchDataAsync);
+
+            hlmcbavPoints = FetchData.ToProperty(this, x => x.HlmcbavPoints);
+
+            displayGraphTabs = this.WhenAnyValue(x => x.HlmcbavPoints)
+                .WhereNotNull()
+                .Do(points =>
+                {
+                    _appStateViewModel.HlmcbavInfo = points;
+                    HistoricalChartsViewModel = new HistoricalChartsViewModel();
+                })
+                .Select(points => points.Any())
+                .ToProperty(this, x => x.DisplayGraphTabs);
+ 
             FetchData.IsExecuting
                 .ToPropertyEx(this, x => x.IsFetching);
             
             FetchData.ThrownExceptions
                 .Subscribe(error => this.Log().Error("Error fetching data!", error));
 
-            
+
             this.WhenAnyValue(x => x.SelectedSymbol)
                 .Select(symbol =>
                 {
                     Trace.WriteLine($"Symbol changed: {symbol.Name}");
-                    return Path.Join(App.LocalAppDataDir, $"{symbol.Name}.csv");
+                    return Path.Join(_appStateViewModel.AppDataPath, $"{symbol.Name}.csv");
                 })
-                .ObserveOn(RxApp.MainThreadScheduler)
                 .ToPropertyEx(this, x => x.DataFilePath);
         }
     }

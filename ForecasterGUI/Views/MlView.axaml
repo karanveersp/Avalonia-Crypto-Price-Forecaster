@@ -4,5 +4,15 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ForecasterGUI.Views.MlView">
-    Welcome to ML!
+    <Grid Margin="5,5,5,5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TabControl Grid.Row="1">
+            <TabItem Header="Model Training" Content="{Binding TrainerViewModel}" />
+            <TabItem Header="Training Results" Content="{Binding TrainingResultsViewModel}"/>
+            <TabItem Header="Predictions" Content="{Binding PredictorViewModel}" />
+        </TabControl>
+    </Grid>
 </UserControl>

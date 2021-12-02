@@ -1,0 +1,36 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Panel>
+            <StackPanel>
+            <Border Padding="20">
+                <!-- Add Controls for Previewer Here -->
+                <Panel Classes="Navbar">
+                    <Button Classes="HeaderBtn">Header</Button>
+                </Panel>
+
+            </Border>
+                <TextBlock Classes="header" Text="Header Label"/>
+                <TextBox />
+            </StackPanel>
+        </Panel>
+    </Design.PreviewWith>
+    <Style Selector="Panel.Navbar">
+        <Setter Property="Background" Value="#2C3D50"/>
+        <Setter Property="Height" Value="60"/>
+    </Style>
+        <Style Selector="Button.HeaderBtn">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Heavy"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="Button.HeaderBtn:pointerover /template/ ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="#77B2DE"/>
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="TextBlock.header">
+        <Setter Property="Margin" Value="0 30 0 20" />
+    </Style>
+</Styles>

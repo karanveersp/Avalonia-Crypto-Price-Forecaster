@@ -13,7 +13,8 @@ namespace ForecasterGUI.Views
         public ComboBox SymbolComboBox => this.Find<ComboBox>("SymbolComboBox");
         public TextBox FetchingTextBox => this.Find<TextBox>("FetchingTextBox");
         public Button FetchDataButton => this.Find<Button>("FetchDataButton");
-        
+        public ScrollViewer ChartsControl => this.Find<ScrollViewer>("ChartsControl");
+ 
         public HistoricalDataView()
         {
             InitializeComponent();
@@ -21,21 +22,26 @@ namespace ForecasterGUI.Views
             this.WhenActivated(disposableRegistration =>
             {
                 this.OneWayBind(ViewModel,
+                        viewModel => viewModel.DisplayGraphTabs,
+                        view => view.ChartsControl.IsVisible)
+                    .DisposeWith(disposableRegistration);
+
+                this.OneWayBind(ViewModel,
                         viewModel => viewModel.Symbols,
                         view => view.SymbolComboBox.Items)
                     .DisposeWith(disposableRegistration);
-
+                
+                this.Bind(ViewModel,
+                        viewModel => viewModel.SelectedSymbol,
+                        view => view.SymbolComboBox.SelectedItem)
+                    .DisposeWith(disposableRegistration); 
+                
                 this.BindCommand(ViewModel,
                     viewModel => viewModel.FetchData,
                     view => view.FetchDataButton,
                     viewModel => viewModel.SelectedSymbol.Name)
                     .DisposeWith(disposableRegistration);
-
-                this.Bind(ViewModel,
-                        viewModel => viewModel.SelectedSymbol,
-                        view => view.SymbolComboBox.SelectedItem)
-                    .DisposeWith(disposableRegistration);
-
+                
                 this.OneWayBind(ViewModel,
                         viewModel => viewModel.IsFetching,
                         view => view.FetchingTextBox.IsVisible)

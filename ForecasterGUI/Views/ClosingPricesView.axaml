@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ForecasterGUI.Views.ClosingPricesView">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Top" Margin="10">
+            <DatePicker Header="Start Date" Name="StartDatePicker" />
+            <Button Name="RefitButton">Refit</Button>
+        </StackPanel>
+        <lvc:CartesianChart Grid.Row="1"
+                            LegendPosition="Right"
+                            Series="{Binding Series}"
+                            XAxes="{Binding XAxes}"
+                            ZoomMode="X" />
+        <lvc:CartesianChart Grid.Row="2"
+                            LegendPosition="Right"
+                            Series="{Binding VolumeSeries}"
+                            XAxes="{Binding XAxes}"
+                            ZoomMode="X" />
+    </Grid>
+</UserControl>

@@ -1,7 +1,9 @@
+using System;
 using System.Linq;
 using Microsoft.ML;
 using Microsoft.ML.Transforms.TimeSeries;
 using System.Collections.Generic;
+using System.Data;
 using Shared.ML.Base;
 using Shared.ML.Objects;
 
@@ -25,6 +27,9 @@ namespace Shared.ML
             int bestHorizon;
             double minError = float.MaxValue;
             Evaluation bestEval = null;
+
+            if (Horizon >= SeriesLength)
+                throw new ConstraintException($"Horizon {Horizon} must be less than Series Length {SeriesLength}");
 
             for (int h = Horizon; h < SeriesLength; h++)
             {

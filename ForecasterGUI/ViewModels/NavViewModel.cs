@@ -15,7 +15,7 @@ namespace ForecasterGUI.ViewModels
 
         public void ToSettings()
         {
-            Center = new SettingsViewModel();
+            Center = new AppStateViewModel();
         }
 
         public void ToML()

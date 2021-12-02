@@ -1,0 +1,32 @@
+<UserControl 
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ForecasterGUI.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="ForecasterGUI.Views.PercentChangesView">
+    <Design.DataContext>
+        <vm:PercentChangesViewModel/>
+    </Design.DataContext>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Spacing="20" Margin="10">
+            <Label>Days</Label>
+            <TextBox Name="PeriodInput"/>
+            <Label>Highlight Threshold</Label>
+            <TextBox Name="ThresholdInput"/>
+            <Button Name="RecomputeButton">Compute</Button>
+        </StackPanel>
+        <lvc:CartesianChart Grid.Row="1" Series="{Binding ClosingPriceSeries}"
+                            ZoomMode="X"
+                            LegendPosition="Right"
+                            XAxes="{Binding XAxes}"/>
+        <lvc:CartesianChart Grid.Row="2" Series="{Binding Series}" 
+                            ZoomMode="X"
+                            LegendPosition="Right"
+                            XAxes="{Binding XAxes}"/>
+    </Grid>
+</UserControl>

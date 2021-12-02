@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ForecasterGUI.Views.TrainingResultsChartView">
+    <DockPanel LastChildFill="True">
+        <Grid DockPanel.Dock="Top" HorizontalAlignment="Left" VerticalAlignment="Top" 
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+              ColumnDefinitions="Auto,6,Auto,Auto,6,*" Width="800">
+            <Label Target="HorizonText">Best Horizon</Label>
+            <TextBlock Grid.Column="2" Name="HorizonText" />
+            
+            <Label Grid.Row="1" Target="SeriesLengthText">Series Length</Label>
+            <TextBlock Grid.Row="1" Grid.Column="2" Name="SeriesLengthText" />
+            
+            <Label Grid.Row="2" Target="WindowSizeText">Best Window Size</Label>
+            <TextBlock Grid.Row="2" Grid.Column="2" Name="WindowSizeText" />
+            
+            <Label Grid.Row="3" Target="TrainStartDateText">Training Start Date</Label>
+            <TextBlock Grid.Row="3" Grid.Column="2" Name="TrainStartDateText" />
+            
+            <Label Grid.Row="4" Target="TrainEndDateText">Training End Date</Label>
+            <TextBlock Grid.Row="4" Grid.Column="2" Name="TrainEndDateText" />
+            
+            <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" 
+                          HorizontalAlignment="Stretch"
+                          Grid.RowSpan="5"></GridSplitter>
+            
+            <!-- Second column -->
+            <Label Grid.Row="0" Grid.Column="3" Target="MeanForecastErrorText">Mean Forecast Error</Label>
+            <TextBlock Grid.Row="0" Grid.Column="5" Name="MeanForecastErrorText" />
+            
+            <Label Grid.Row="1" Grid.Column="3" Target="MeanAbsoluteErrorText">Mean Absolute Error</Label>
+            <TextBlock Grid.Row="1" Grid.Column="5" Name="MeanAbsoluteErrorText" />
+            
+            <Label Grid.Row="2" Grid.Column="3" Target="MeanSquaredErrorText">Mean Squared Error</Label>
+            <TextBlock Grid.Row="2" Grid.Column="5" Name="MeanSquaredErrorText" /> 
+            
+            <GridSplitter Grid.Column="4" VerticalAlignment="Stretch" 
+                          HorizontalAlignment="Stretch"
+                          Grid.RowSpan="5"></GridSplitter> 
+        </Grid>
+        
+        <lvc:CartesianChart Name="ResultChart" Margin="0,20"
+                            LegendPosition="Right"
+                            Series="{Binding SeriesCollection}"
+                            XAxes="{Binding XAxes}"
+                            ZoomMode="X" />
+    </DockPanel>
+</UserControl>
