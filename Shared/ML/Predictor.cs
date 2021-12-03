@@ -4,8 +4,7 @@ using Microsoft.ML;
 using Microsoft.ML.Transforms.TimeSeries;
 using System.Linq;
 using System.Collections.Generic;
-
-using Shared.Services;
+using System.Diagnostics;
 using Shared.ML.Objects;
 using Shared.ML.Base;
 
@@ -30,35 +29,49 @@ namespace Shared.ML
             // to make predictions based on the given new data
 
             var mlModel = LoadModelIntoMemory(ModelFilePath);
+            var predictionEngine = mlModel.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(MlContext);
 
             DateTime trainedToDate;
 
-            if (newData.Count() > 0)
+            List<ForecastData> forecast;
+            
+            if (newData.Any())
             {
+                // foreach (var d in newData)
+                // {
+                //     Trace.WriteLine($"New Data: {d.Date} {d.Feature}");
+                // }
                 // some new data was provided (possibly including today's current price or hypothetical price)
                 // Train the model on the data, and then make the prediction.
-                var dataView = MlContext.Data.LoadFromEnumerable<TimedFeature>(newData);
-                mlModel.Transform(dataView);
+                // var dataView = MlContext.Data.LoadFromEnumerable(newData);
+                // mlModel.Transform(dataView);
+                var predictions = newData.Select(d => (d.Date, predictionEngine.Predict(d)));
+                var predictionTuples = predictions.ToList();
+                // foreach (var (date, fp) in predictionTuples)
+                // {
+                //     foreach (var f in fp.FeatureForecast)
+                //     {
+                //         Trace.WriteLine($"Pred with date: {date} - {f}");
+                //     }
+                // }
                 trainedToDate = newData.Last().Date;
+                forecast = ForecastData.FromPredictionFromDate(predictionTuples.Last().Item2, trainedToDate);
             }
             else
             {
                 // No new data was provided. Metadata trained date is the last date.
                 trainedToDate = Metadata.TrainedToDate;
+                var prediction = predictionEngine.Predict();
+                forecast = ForecastData.FromPredictionFromDate(prediction, trainedToDate);
             }
-
-            var predictionEngine = mlModel.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(MlContext);
-            var prediction = predictionEngine.Predict();
-            var forecast = ForecastData.FromPredictionFromDate(prediction, trainedToDate);
-
-            return new PredictionData(Metadata, trainedToDate, newData, forecast);
+            return new PredictionData(Metadata, trainedToDate, forecast);
         }
 
         private ITransformer LoadModelIntoMemory(String modelPath)
         {
             ITransformer mlModel;
 
-            using (var stream = new FileStream(ModelFilePath,
+            using (var stream = new FileStream(modelPath,
                         FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 mlModel = MlContext.Model.Load(stream, out _);

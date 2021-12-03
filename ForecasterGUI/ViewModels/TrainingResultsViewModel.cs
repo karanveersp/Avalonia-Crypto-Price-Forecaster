@@ -19,7 +19,7 @@ namespace ForecasterGUI.ViewModels
     public class TrainingResultsViewModel : ViewModelBase
     {
         private readonly AppStateViewModel _appState;
-        private MainWindowViewModel _mainWindowViewModel;
+        private readonly MainWindowViewModel _mainWindowViewModel;
 
         [Reactive]
         public Symbol SelectedSymbol { get; set; }

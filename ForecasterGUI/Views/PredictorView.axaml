@@ -4,5 +4,51 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ForecasterGUI.Views.PredictorView">
-    Welcome to Predictor!
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel HorizontalAlignment="Left" Spacing="20">
+            <Label Target="ModelsDirTextBox">Models Directory</Label>
+            <TextBox Name="ModelsDirTextBox" IsReadOnly="True" BorderThickness="0" />
+
+            <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Left">
+                <ComboBox Name="SymbolComboBox">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox Name="ExistingModelsComboBox">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                
+                <Button Name="RefreshButton">Refresh Model List</Button>
+            </StackPanel>
+           
+            <CheckBox Name="IncludeDataForMissingDates">Include available data since last trained date</CheckBox>
+            <CheckBox Name="IncludeCurrentPrice">Train on current price before forecasting</CheckBox>
+            <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Left">
+                <CheckBox Name="IncludeCustomPrice">Train on custom price before forecasting</CheckBox>
+                <TextBox Name="CustomPriceTextBox" Width="200" HorizontalAlignment="Left"/>
+            </StackPanel>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="20">
+                <Button Name="ForecastButton">Forecast</Button>
+                <TextBlock Margin="0, 20" Name="ForecastingTextBlock" Text="Forecasting..." />
+            </StackPanel>
+           
+        </StackPanel>
+
+        
+        <UserControl Grid.Row="1" Content="{Binding PredictionResultsViewModel}" />
+        
+    </Grid>
 </UserControl>

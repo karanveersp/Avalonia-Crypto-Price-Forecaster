@@ -46,12 +46,12 @@ namespace ForecasterCLI
 
             IDataService ds = new DataService(quandlApiKey);
             List<TimedFeature> newData = new List<TimedFeature>();
+            List<HlmcbavData> hlmcbavData = new();
 
             if (toLatestData)
             {
-                newData = Util.GetLatestAvailableCloseData(symbol, metadata.TrainedToDate, ds);
-                var currentPrice = ds.CurrentPrice(symbol);
-                newData.Add(currentPrice);
+                hlmcbavData = Util.GetLatestAvailableData(symbol, metadata.TrainedToDate, ds).ToList();
+                newData = hlmcbavData.Select(d => new TimedFeature(d.Date, Convert.ToSingle(d.Close))).ToList();
             }
 
             // CustomPrice default if not provided is float.MinValue.
@@ -62,7 +62,9 @@ namespace ForecasterCLI
                     .TakeWhile(t => t.Date < today)
                     .Append(new TimedFeature(today, customPrice))
                     .ToList();
+                hlmcbavData.Add(new HlmcbavData(today, 0, 0, 0, Convert.ToDouble(customPrice), 0, 0, 0));
             }
+            
 
             var predictor = new Predictor(symbol, modelPath, metadata);
             var predictionData = predictor.Predict(newData);
@@ -80,7 +82,7 @@ namespace ForecasterCLI
             var predictionDatasetFile = Constants.DataDir + $"{symbol}_prediction_dataset.csv";
             File.Copy(datasetFile, predictionDatasetFile, overwrite: true);
 
-            Util.UpdateDataSetFile(predictionDatasetFile, predictionDatasetFile, predictionData.NewDataForModel);
+            Util.UpdateDataSetFile(predictionDatasetFile, predictionDatasetFile, hlmcbavData);
         }
 
         private static void Train(String symbol, String quandlApiKey, int horizon, int seriesLength,
