@@ -22,7 +22,7 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Publish
-      run: dotnet publish --no-build --verbosity normal -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true .\ForecastGUI\ForecastGUI.csproj -o win-x64-release
+      run: dotnet publish --no-build --verbosity normal -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true ${{ github.workspace }}/ForecastGUI/ForecastGUI.csproj -o win-x64-release
 
     - name: Upload windows release
       uses: actions/upload-artifact@v2.3.0
