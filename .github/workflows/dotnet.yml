@@ -23,7 +23,7 @@ jobs:
       run: dotnet build --no-restore
         
     - name: Publish
-      run: dotnet publish --verbosity normal -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true ForecasterGUI\ForecasterGUI.csproj -o win-x64-release
+      run: dotnet publish --verbosity normal -c Release -r win-x64 --self-contained true ForecasterGUI\ForecasterGUI.csproj -o win-x64-release
 
     - name: Upload windows release
       uses: actions/upload-artifact@v2.3.0
@@ -32,10 +32,7 @@ jobs:
         name: win-x64-release      
         path: ./win-x64-release
         # The desired behavior if no files are found using the provided path.
-        warn: Output a warning but do not fail the action
-        error: Fail the action with an error message
-        ignore: Do not output any warnings or errors, the action does not fail
-
+      
         if-no-files-found: error # optional, default is warn
         # Duration after which artifact will expire in days. 0 means using default retention.
         # Minimum 1 day. Maximum 90 days unless changed from the repository settings page.
