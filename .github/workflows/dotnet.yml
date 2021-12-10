@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build_and_publish:
+  build_and_publish_win_x64:
 
     runs-on: windows-latest
 
@@ -18,9 +18,9 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -r win-x64
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore -r win-x64
         
     - name: Publish
       run: dotnet publish --no-build --verbosity normal -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true ForecasterGUI\ForecasterGUI.csproj -o win-x64-release
