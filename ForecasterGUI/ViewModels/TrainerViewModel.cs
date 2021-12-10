@@ -72,6 +72,7 @@ namespace ForecasterGUI.ViewModels
                     .Select(d => new TimedFeature(d.Date, Convert.ToSingle(d.Close)));
                 
                 var trainer = new Trainer(symbol, MinHorizon, MaxSeriesLength);
+                
                 var eval = trainer.Train(features);
 
                 Trace.WriteLine("Training Metrics:\n" +

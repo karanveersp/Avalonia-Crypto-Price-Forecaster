@@ -10,6 +10,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -20,11 +21,15 @@
             <TextBox Name="ThresholdInput"/>
             <Button Name="RecomputeButton">Compute</Button>
         </StackPanel>
-        <lvc:CartesianChart Grid.Row="1" Series="{Binding ClosingPriceSeries}"
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="20" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <DatePicker Header="Start Date" Name="StartDatePicker" />
+            <Button Name="RefitButton">Refit</Button>
+        </StackPanel>
+        <lvc:CartesianChart Grid.Row="2" Series="{Binding ClosingPriceSeries}"
                             ZoomMode="X"
                             LegendPosition="Right"
                             XAxes="{Binding XAxes}"/>
-        <lvc:CartesianChart Grid.Row="2" Series="{Binding Series}" 
+        <lvc:CartesianChart Grid.Row="3" Series="{Binding PercentSeries}" 
                             ZoomMode="X"
                             LegendPosition="Right"
                             XAxes="{Binding XAxes}"/>

@@ -4,6 +4,7 @@ using Microsoft.ML;
 using Microsoft.ML.Transforms.TimeSeries;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using Shared.ML.Base;
 using Shared.ML.Objects;
 
@@ -24,9 +25,9 @@ namespace Shared.ML
 
         public Evaluation Train(IEnumerable<TimedFeature> data)
         {
-            int bestHorizon;
             double minError = float.MaxValue;
-            Evaluation bestEval = null;
+            Evaluation bestEval = null!;
+            data = data.ToList();
 
             if (Horizon >= SeriesLength)
                 throw new ConstraintException($"Horizon {Horizon} must be less than Series Length {SeriesLength}");
@@ -38,7 +39,6 @@ namespace Shared.ML
                 var evalData = OptimizedSsaModel(trainingData, testData, SeriesLength, h);
                 if (evalData.MeanAbsoluteError < minError)
                 {
-                    bestHorizon = h;
                     bestEval = evalData;
                     bestEval.Horizon = h;
                     minError = evalData.MeanAbsoluteError;
@@ -48,6 +48,8 @@ namespace Shared.ML
             return bestEval;
         }
 
+        [SuppressMessage("ReSharper", "ArgumentsStyleOther")]
+        [SuppressMessage("ReSharper", "ArgumentsStyleNamedExpression")]
         private Evaluation OptimizedSsaModel(List<TimedFeature> trainingData, List<TimedFeature> testData, int seriesLength, int horizon)
         {
 
@@ -63,8 +65,8 @@ namespace Shared.ML
                 var model = MlContext.Forecasting.ForecastBySsa(
                                 outputColumnName: nameof(FeaturePrediction.FeatureForecast),
                                 inputColumnName: nameof(TimedFeature.Feature),
-                                windowSize: i,     // each interval is analyzed through this window
-                                seriesLength: seriesLength,  // splits data into intervals
+                                windowSize: i,     // each buffer is analyzed through this window
+                                seriesLength: seriesLength,  // splits data into buffers of this length 
                                 trainSize: trainingData.Count(),
                                 horizon: horizon,
                                 confidenceLevel: 0.95f,
@@ -74,8 +76,8 @@ namespace Shared.ML
                 // Fit the model to the training data.
                 var transformer = model.Fit(trainingDataView);
 
-                //Evaluate(MlContext.Data.LoadFromEnumerable(testData), transformer, MlContext);
                 var forecastEngine = transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(MlContext);
+                
                 // Make a prediction using the engine.
                 var prediction = forecastEngine.Predict();
 
@@ -88,7 +90,7 @@ namespace Shared.ML
                     minError = eval.MeanAbsoluteError;
                 }
             }
-            bestEval.WindowSize = bestWindowSize;
+            bestEval!.WindowSize = bestWindowSize;
             return bestEval;
         }
 

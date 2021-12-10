@@ -52,7 +52,7 @@ namespace Shared.ML.Objects
                 .Select(e => Convert.ToDouble(e)).ToList();
 
             // The mean forecast error value other than 0 suggests a tendency of the model
-            // to over forecase (negative error) or under forecast (positive error).
+            // to over forecast (negative error) or under forecast (positive error).
             MeanForecastError = errors.Average();
 
             // The mean absolute error takes absolute value of the errors before taking the mean.
@@ -127,8 +127,9 @@ namespace Shared.ML.Objects
             var modelFileName = $"{Path.GetFileName(directory)}.zip";
             var modelFilePath = Path.Combine(directory, modelFileName);
 
-            var forecastEngine = _transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(_mlContext);
-            forecastEngine.CheckPoint(_mlContext, modelFilePath);
+            // var forecastEngine = _transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(_mlContext);
+            // forecastEngine.CheckPoint(_mlContext, modelFilePath);
+            _mlContext.Model.Save(_transformer, null, modelFilePath);
 
             // Write the model's metadata to the same directory. 
             var metadataFileName = Path.GetFileNameWithoutExtension(modelFileName) + ".json";

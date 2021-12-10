@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive;
 using Avalonia.Media;
@@ -23,26 +24,53 @@ namespace ForecasterGUI.ViewModels
     {
         private static SolidColorPaint _underThresholdColor = new SolidColorPaint(SKColors.LightBlue);
         private static SolidColorPaint _overThresholdColor = new SolidColorPaint(SKColors.Green);
+
+        private ObservableCollection<DateTimePoint> _observableCloseValues;
+
+        [Reactive]
+        public DateTime StartDate { get; set; }
+        
+        public DateTime LastDate { get; private set; }
+        
+        public IEnumerable<TimedFeature> ClosingPrices { get; }
         public IEnumerable<ISeries> ClosingPriceSeries { get; set; }
-        public ObservableCollection<ISeries> Series { get; set; }
+        public ObservableCollection<ISeries> PercentSeries { get; set; }
         public IEnumerable<ICartesianAxis> XAxes { get; set; }
 
         [Reactive] public int Period { get; set; }
         [Reactive] public double Threshold { get; set; }
 
         public ReactiveCommand<Unit, Unit> Recompute { get; private set; }
+        public ReactiveCommand<Unit, Unit> RefitCommand { get; }
 
-        public void ReacalculateValues()
+        public void RefitZoom()
         {
-            var nDayPercentChanges = Util.ToPercentChanges(ClosingPrices.ToArray(), Period);
+            XAxes.First().MinLimit = null;
+            XAxes.First().MaxLimit = null;
+            Trace.WriteLine($"{XAxes.First().MinLimit}");
+            Trace.WriteLine($"{XAxes.First().MaxLimit}");
+            Trace.WriteLine("Performed refitting!");
+        }
+        
+        public void RecalculateValues()
+        {
+            if (StartDate >= LastDate)
+                return;
+            var dataAfterDate = _observableCloseValues
+                .Select(p => new TimedFeature(p.DateTime, Convert.ToSingle(p.Value)))
+                .Where(p => p.Date.Date >= StartDate);
+            var nDayPercentChanges = Util.ToPercentChanges(dataAfterDate.ToArray(), Period);
             var data = nDayPercentChanges.Where(p => p != null).Select(
                 p => new DateTimePoint(p.Date, p.Feature)).ToList();
-            Series.Clear();
-            Series.AddRange(ToColumnSeries(data));
+            PercentSeries.Clear();
+            PercentSeries.AddRange(ToColumnSeries(data));
+            Trace.WriteLine("Recalculated percent series!");
+
         }
 
         private ColumnSeries<DateTimePoint>[] ToColumnSeries(List<DateTimePoint> data)
         {
+            
             var underThresholdCols = new ColumnSeries<DateTimePoint>
             {
                 Values = data.Where(p => Math.Abs(p.Value!.Value) < Threshold),
@@ -64,19 +92,22 @@ namespace ForecasterGUI.ViewModels
 
         private AppStateViewModel _appStateViewModel;
         
-        
-        public IEnumerable<TimedFeature> ClosingPrices { get; }
-
         public PercentChangesViewModel()
         {
             _appStateViewModel = Locator.Current.GetService<AppStateViewModel>()!;
             ClosingPrices = Util.ToClosingPrices(_appStateViewModel.HlmcbavInfo)
-                .Where(d => d.Date >= DateTime.Now.AddMonths(-3)).ToList();
+                .ToList();
 
+            _observableCloseValues = new ObservableCollection<DateTimePoint>(ClosingPrices.Select(p => new DateTimePoint(p.Date, p.Feature)));
+            
             Period = 3;
             Threshold = 5.0;
 
-            Recompute = ReactiveCommand.Create(ReacalculateValues);
+            Recompute = ReactiveCommand.Create(RecalculateValues);
+            RefitCommand = ReactiveCommand.Create(RefitZoom);
+            
+            StartDate = _observableCloseValues.First().DateTime;
+            LastDate = _observableCloseValues.Last().DateTime;
 
             var nDayPercentChanges = Util.ToPercentChanges(ClosingPrices.ToArray(), Period);
             var data = nDayPercentChanges.Select(
@@ -95,16 +126,32 @@ namespace ForecasterGUI.ViewModels
             {
                 new LineSeries<DateTimePoint>
                 {
-                    Values = ClosingPrices.Select(p => new DateTimePoint(p.Date, p.Feature)).ToList(),
-                    Name = "Closing Price for last 3 months",
+                    Values = _observableCloseValues,
+                    Name = "Closing Price",
                     TooltipLabelFormatter = point => $"Last: {point.Model!.Value:F2} on {point.Model!.DateTime.ToString("d")}",
                     GeometrySize = 10,
                     Fill = null
                 }
             };
+            
+            PercentSeries = new ObservableCollection<ISeries>();
+            PercentSeries.AddRange(ToColumnSeries(data));
 
-            Series = new ObservableCollection<ISeries>();
-            Series.AddRange(ToColumnSeries(data));
+            this.WhenAnyValue(x => x.StartDate)
+                .Subscribe(startDate =>
+                {
+                    if (startDate > LastDate) return;
+                    
+                    var filteredCloseData = ClosingPrices 
+                        .Where(d => d.Date >= startDate)
+                        .Select(p => new DateTimePoint(p.Date, p.Feature)).ToList();
+                    Trace.WriteLine($"Filtered date start date: {filteredCloseData.First().DateTime}");
+                    _observableCloseValues.Clear();
+                    _observableCloseValues.AddRange(filteredCloseData);
+
+                    RecalculateValues();
+                    RefitZoom();
+                });
         }
     }
 }
