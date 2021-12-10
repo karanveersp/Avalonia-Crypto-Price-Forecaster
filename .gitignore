@@ -2,3 +2,6 @@ bin/
 obj/
 .fake
 .ionide
+.idea/
+appdata/
+.env
