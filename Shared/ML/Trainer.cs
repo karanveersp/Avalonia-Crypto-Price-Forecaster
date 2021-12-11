@@ -50,47 +50,43 @@ namespace Shared.ML
 
         [SuppressMessage("ReSharper", "ArgumentsStyleOther")]
         [SuppressMessage("ReSharper", "ArgumentsStyleNamedExpression")]
-        private Evaluation OptimizedSsaModel(List<TimedFeature> trainingData, List<TimedFeature> testData, int seriesLength, int horizon)
+        private Evaluation OptimizedSsaModel(
+            List<TimedFeature> trainingData, List<TimedFeature> testData, int seriesLength, int horizon)
         {
-
-            Evaluation bestEval = null;
-            double minError = double.MaxValue;
-            int bestWindowSize = 0;
+            Evaluation bestEval = null!;
+            var minError = double.MaxValue;
+            var bestWindowSize = 0;
             var trainingDataView = MlContext.Data.LoadFromEnumerable(trainingData);
 
-            for (int i = 2; i < seriesLength; i++)
+            for (var windowSize = 2; windowSize < seriesLength; windowSize++)
             {
-                // Reference: Read - 
-                // https://docs.microsoft.com/en-us/dotnet/api/microsoft.ml.timeseriescatalog.forecastbyssa?view=ml-dotnet
                 var model = MlContext.Forecasting.ForecastBySsa(
                                 outputColumnName: nameof(FeaturePrediction.FeatureForecast),
                                 inputColumnName: nameof(TimedFeature.Feature),
-                                windowSize: i,     // each buffer is analyzed through this window
+                                windowSize: windowSize,     // each buffer is analyzed through this window
                                 seriesLength: seriesLength,  // splits data into buffers of this length 
-                                trainSize: trainingData.Count(),
+                                trainSize: trainingData.Count,
                                 horizon: horizon,
                                 confidenceLevel: 0.95f,
                                 confidenceLowerBoundColumn: nameof(FeaturePrediction.LowerBound),
                                 confidenceUpperBoundColumn: nameof(FeaturePrediction.UpperBound));
 
-                // Fit the model to the training data.
                 var transformer = model.Fit(trainingDataView);
-
                 var forecastEngine = transformer.CreateTimeSeriesEngine<TimedFeature, FeaturePrediction>(MlContext);
-                
-                // Make a prediction using the engine.
                 var prediction = forecastEngine.Predict();
 
                 var eval = new Evaluation(MlContext, horizon, seriesLength, transformer, testData, trainingData, prediction);
-
+                
                 if (eval.MeanAbsoluteError < minError)
                 {
+                    // Re-assign values contributing to a lower error.
                     bestEval = eval;
-                    bestWindowSize = i;
+                    bestWindowSize = windowSize;
                     minError = eval.MeanAbsoluteError;
                 }
             }
-            bestEval!.WindowSize = bestWindowSize;
+            
+            bestEval.WindowSize = bestWindowSize;
             return bestEval;
         }
 

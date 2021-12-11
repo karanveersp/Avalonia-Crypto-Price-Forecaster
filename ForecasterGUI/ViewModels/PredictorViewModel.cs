@@ -82,6 +82,8 @@ namespace ForecasterGUI.ViewModels
                 Trace.WriteLine($"Model is trained from date: {metadata.TrainedFromDate:yyyy-MM-dd}");
                 Trace.WriteLine($"Model is trained to date: {metadata.TrainedToDate:yyyy-MM-dd}");
 
+                var oneDayAfterLast = metadata.TrainedToDate.AddDays(1).Date;
+
                 List<TimedFeature> newData = new();
                 List<HlmcbavData> hlmcbavData = new();
 
@@ -100,14 +102,25 @@ namespace ForecasterGUI.ViewModels
                 if (IncludeCurrentPrice && !IncludeCustomPrice)
                 {
                     var currentPrice = _dataService.CurrentPrice(symbol);
+                    if (!IncludeDataForMissingDates)
+                    {
+                        currentPrice.Date = oneDayAfterLast;
+                    }
                     newData.Add(currentPrice);
                     hlmcbavData.Add(new HlmcbavData(currentPrice.Date, 0, 0, 0,
                         Convert.ToDouble(currentPrice.Feature), 0, 0, 0));
                 }
                 else if (!IncludeCurrentPrice && IncludeCustomPrice)
                 {
-                    newData.Add(new TimedFeature(today, Convert.ToSingle(CustomPrice)));
-                    hlmcbavData.Add(new HlmcbavData(today, 0, 0, 0,
+                    if (!IncludeDataForMissingDates)
+                    {
+                        newData.Add(new TimedFeature(oneDayAfterLast, Convert.ToSingle(CustomPrice)));
+                    }
+                    else
+                    {
+                        newData.Add(new TimedFeature(today, Convert.ToSingle(CustomPrice)));
+                    }
+                    hlmcbavData.Add(new HlmcbavData(newData.Last().Date, 0, 0, 0,
                         Convert.ToDouble(CustomPrice), 0, 0, 0));
                 }
 

@@ -37,23 +37,8 @@ namespace Shared.ML
             
             if (newData.Any())
             {
-                // foreach (var d in newData)
-                // {
-                //     Trace.WriteLine($"New Data: {d.Date} {d.Feature}");
-                // }
-                // some new data was provided (possibly including today's current price or hypothetical price)
-                // Train the model on the data, and then make the prediction.
-                // var dataView = MlContext.Data.LoadFromEnumerable(newData);
-                // mlModel.Transform(dataView);
                 var predictions = newData.Select(d => (d.Date, predictionEngine.Predict(d)));
                 var predictionTuples = predictions.ToList();
-                // foreach (var (date, fp) in predictionTuples)
-                // {
-                //     foreach (var f in fp.FeatureForecast)
-                //     {
-                //         Trace.WriteLine($"Pred with date: {date} - {f}");
-                //     }
-                // }
                 trainedToDate = newData.Last().Date;
                 forecast = ForecastData.FromPredictionFromDate(predictionTuples.Last().Item2, trainedToDate);
             }

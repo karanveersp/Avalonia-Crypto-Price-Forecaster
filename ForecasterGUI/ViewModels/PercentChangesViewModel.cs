@@ -96,6 +96,7 @@ namespace ForecasterGUI.ViewModels
         {
             _appStateViewModel = Locator.Current.GetService<AppStateViewModel>()!;
             ClosingPrices = Util.ToClosingPrices(_appStateViewModel.HlmcbavInfo)
+                .Where(p => p.Date >= DateTime.Now.AddYears(-1)) // only keep past 1 year of data
                 .ToList();
 
             _observableCloseValues = new ObservableCollection<DateTimePoint>(ClosingPrices.Select(p => new DateTimePoint(p.Date, p.Feature)));

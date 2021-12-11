@@ -39,10 +39,14 @@ namespace ForecasterGUI
                     .WithEnvFiles()
                     .WithEnvFiles()
                     .Read();
-                var apiKey = envVars["API_KEY"];
+                var apiKey = envVars.ContainsKey("API_KEY") 
+                    ? envVars["API_KEY"] 
+                    : "";
                 var dataService = new DataService(apiKey);
 
-                SupportedCurrencies = envVars["SUPPORTED_CURRENCIES"].Split(',');
+                SupportedCurrencies = envVars.ContainsKey("SUPPORTED_CURRENCIES")
+                    ? envVars["SUPPORTED_CURRENCIES"].Split(',')
+                    : new[] { "BTCUSD", "ETHUSD", "XMRUSD" };
                 
                 // Singleton data service registration with DI framework.
                 Locator.CurrentMutable.RegisterConstant(dataService, typeof(IDataService));
