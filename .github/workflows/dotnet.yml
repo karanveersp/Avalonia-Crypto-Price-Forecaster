@@ -1,0 +1,40 @@
+name: .NET
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_and_publish_win_x64:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+        
+    - name: Publish
+      run: dotnet publish --verbosity normal -c Release -r win-x64 --self-contained true ForecasterGUI\ForecasterGUI.csproj -o win-x64-release
+
+    - name: Upload windows release
+      uses: actions/upload-artifact@v2.3.0
+      with:
+        # Artifact name
+        name: win-x64-release      
+        path: ./win-x64-release
+        # The desired behavior if no files are found using the provided path.
+      
+        if-no-files-found: error # optional, default is warn
+        # Duration after which artifact will expire in days. 0 means using default retention.
+        # Minimum 1 day. Maximum 90 days unless changed from the repository settings page.
+
+        retention-days: 90 # optional
