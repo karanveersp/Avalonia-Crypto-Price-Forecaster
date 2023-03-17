@@ -1,4 +1,4 @@
-# Computer Science Capstone Project
+# Crypto Price Forecaster
 
 Cryptocurrency price analysis and forecasting desktop app, built with C#, ML.NET, LiveCharts v2 and Avalonia.
 
