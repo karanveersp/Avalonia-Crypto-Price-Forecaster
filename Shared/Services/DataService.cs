@@ -1,42 +1,47 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Shared.ML.Objects;
 using Quandl.NET;
-using CoinGecko.Clients;
 using Newtonsoft.Json.Linq;
+using Shared.Models;
 
 namespace Shared.Services
 {
     public class DataService : IDataService
     {
         private readonly QuandlClient Client;
-        private readonly CoinGeckoClient GeckoClient;
+        private readonly IGeckoClient CgClient;
         private readonly HttpClient HttpClient;
-        
-        
+
         private const string QuandlDatabaseCode = "BITFINEX";
         private Dictionary<string, string> SymbolToCoinGeckoId;
 
         public DataService(string quandlApiKey)
         {
             HttpClient = new HttpClient();
-            
-            Client = new QuandlClient(quandlApiKey);
-            GeckoClient = CoinGeckoClient.Instance;
-            var coinData = GeckoClient.CoinsClient.GetAllCoinsData().Result;
 
+            // initialize API clients
+            Client = new QuandlClient(quandlApiKey);
+            CgClient = new GeckoClient(HttpClient);
+            // get coin data
+
+            Console.WriteLine("Sending get request to coingecko..");
+            var coins = CgClient.GetCoinsList()
+                .ConfigureAwait(false).GetAwaiter().GetResult();
             SymbolToCoinGeckoId = new Dictionary<string, string>();
-            foreach (var coin in coinData)
+            foreach (var coin in coins)
             {
+                if (SymbolToCoinGeckoId.ContainsKey(coin.Symbol.ToUpper()))
+                {
+                    continue;
+                }
                 SymbolToCoinGeckoId.Add(coin.Symbol.ToUpper(), coin.Id);
-                Trace.WriteLine($"{coin.Symbol.ToUpper()} - {coin.Id}");
             }
         }
-        
+
         public List<HlmcbavData> DataAfterDate(string symbol, DateTime date)
         {
             var data = Client.Timeseries.GetDataAsync(QuandlDatabaseCode, symbol, startDate: date.Date).Result;
@@ -56,8 +61,8 @@ namespace Shared.Services
             {
                 var rowDate = DateTime.Parse((string)row[0]);
                 var rowClose = (double)row[4];
-                
-                
+
+
                 prices.Add(new TimedFeature(rowDate, Convert.ToSingle(rowClose)));
             }
 
@@ -69,12 +74,11 @@ namespace Shared.Services
             // remove USD from symbol.
             var symbolWithoutUsd = symbol.Replace("USD", String.Empty);
             var id = SymbolToCoinGeckoId[symbolWithoutUsd];
-            var currentPrices = GeckoClient.SimpleClient.GetSimplePrice(
+            Console.WriteLine(id);
+            var fetchedPrice = CgClient.GetUsdPrice(
                 new string[] { id },
-                new string[] { "usd" }).Result;
-            decimal price = currentPrices.GetValueOrDefault(id).GetValueOrDefault("usd").GetValueOrDefault();
-            var currentPrice = new TimedFeature(DateTime.Now, Convert.ToSingle(price));
-            return currentPrice;
+                new string[] { "usd" }).ConfigureAwait(false).GetAwaiter().GetResult();
+            return new TimedFeature(DateTime.Now, Convert.ToSingle(fetchedPrice));
         }
 
         public List<OhlcData> Candles(string symbol, DateTime from)
@@ -96,6 +100,6 @@ namespace Shared.Services
             return candles;
         }
 
-        
+
     }
 }

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -10,8 +10,8 @@
     <PackageReference Include="Microsoft.ML.TimeSeries" Version="1.6.0" />
 
     <!--External API Clients-->
-    <PackageReference Include="CoinGeckoAsyncApi" Version="1.5.0" />
     <PackageReference Include="Quandl.NET" Version="1.2.1" />
+    <PackageReference Include="RestSharp" Version="109.0.1" />
 
   </ItemGroup>
 

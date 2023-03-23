@@ -21,7 +21,7 @@ namespace ForecasterGUI.ViewModels
 
         private ObservableAsPropertyHelper<IEnumerable<HlmcbavData>> hlmcbavPoints;
         public IEnumerable<HlmcbavData> HlmcbavPoints => hlmcbavPoints.Value;
-        
+
         // Data file path OAPH
         public string DataFilePath { [ObservableAsProperty] get; }
 
@@ -31,7 +31,7 @@ namespace ForecasterGUI.ViewModels
         // Display graphs OAPH
         private ObservableAsPropertyHelper<bool> displayGraphTabs;
         public bool DisplayGraphTabs => displayGraphTabs.Value;
-        
+
 
         // Command
         public ReactiveCommand<string, List<HlmcbavData>> FetchData { get; private set; }
@@ -39,7 +39,7 @@ namespace ForecasterGUI.ViewModels
         // Charts view model ref
         [Reactive]
         public ViewModelBase HistoricalChartsViewModel { get; private set; }
-        
+
         // Private fields
         private IDataService? _dataService;
         private IObservable<List<HlmcbavData>> FetchDataAsync(string symbol)
@@ -49,13 +49,13 @@ namespace ForecasterGUI.ViewModels
         private AppStateViewModel _appStateViewModel;
 
         // Constructor
-        public HistoricalDataViewModel(IDataService? dataService = null)
+        public HistoricalDataViewModel(IDataService? dataService = default)
         {
             _appStateViewModel = Locator.Current.GetService<AppStateViewModel>()!;
 
             Symbols = App.SupportedCurrencies.Select(s => new Symbol(s)).ToList();
             SelectedSymbol = Symbols.First();
-            
+
             _dataService = dataService ?? Locator.Current.GetService<IDataService>();
 
             FetchData = ReactiveCommand.CreateFromObservable<string, List<HlmcbavData>>(FetchDataAsync);
@@ -71,10 +71,10 @@ namespace ForecasterGUI.ViewModels
                 })
                 .Select(points => points.Any())
                 .ToProperty(this, x => x.DisplayGraphTabs);
- 
+
             FetchData.IsExecuting
                 .ToPropertyEx(this, x => x.IsFetching);
-            
+
             FetchData.ThrownExceptions
                 .Subscribe(error => this.Log().Error("Error fetching data!", error));
 

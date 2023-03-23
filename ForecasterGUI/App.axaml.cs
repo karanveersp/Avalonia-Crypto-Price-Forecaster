@@ -20,8 +20,8 @@ namespace ForecasterGUI
         {
             AvaloniaXamlLoader.Load(this);
         }
-        
-        public static string LocalAppDataDir => 
+
+        public static string LocalAppDataDir =>
             Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ForecasterGUI");
 
@@ -37,22 +37,21 @@ namespace ForecasterGUI
                 // Parse dotenv file and initialize instance of data service.
                 var envVars = DotEnv.Fluent()
                     .WithEnvFiles()
-                    .WithEnvFiles()
                     .Read();
-                var apiKey = envVars.ContainsKey("API_KEY") 
-                    ? envVars["API_KEY"] 
+                var apiKey = envVars.ContainsKey("API_KEY")
+                    ? envVars["API_KEY"]
                     : "";
                 var dataService = new DataService(apiKey);
 
                 SupportedCurrencies = envVars.ContainsKey("SUPPORTED_CURRENCIES")
                     ? envVars["SUPPORTED_CURRENCIES"].Split(',')
                     : new[] { "BTCUSD", "ETHUSD", "XMRUSD" };
-                
+
                 // Singleton data service registration with DI framework.
                 Locator.CurrentMutable.RegisterConstant(dataService, typeof(IDataService));
-                
+
                 var mainWindow = new MainWindow();
-                
+
                 // Register MainWindow with DI to allow other components to access the main view model
                 // for window notification command creation.
                 Locator.CurrentMutable.RegisterConstant(mainWindow, typeof(MainWindow));
@@ -63,17 +62,17 @@ namespace ForecasterGUI
                 string stateFile = Path.Join(LocalAppDataDir, "appstate.json");
                 RxApp.SuspensionHost.SetupDefaultSuspendResume(new NewtonsoftJsonSuspensionDriver(stateFile));
                 suspension.OnFrameworkInitializationCompleted();
-                
+
                 Locator.CurrentMutable.RegisterConstant(
                     RxApp.SuspensionHost.GetAppState<AppStateViewModel>(), typeof(AppStateViewModel));
-                
+
                 // Display the main view.
                 desktop.MainWindow = mainWindow;
-               
+
                 base.OnFrameworkInitializationCompleted();
             }
 
-            
+
         }
     }
 }
