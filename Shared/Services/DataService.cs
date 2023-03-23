@@ -26,9 +26,8 @@ namespace Shared.Services
             // initialize API clients
             Client = new QuandlClient(quandlApiKey);
             CgClient = new GeckoClient(HttpClient);
-            // get coin data
 
-            Console.WriteLine("Sending get request to coingecko..");
+            // get coins listings
             var coins = CgClient.GetCoinsList()
                 .ConfigureAwait(false).GetAwaiter().GetResult();
             SymbolToCoinGeckoId = new Dictionary<string, string>();
